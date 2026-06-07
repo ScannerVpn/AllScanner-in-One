@@ -1,0 +1,81 @@
+'use strict';
+/**
+ * VPN Scanner Suite — یک نقطه‌ی ورود واحد
+ * هر چهار اسکنر را به صورت پروسه‌ی جداگانه بالا می‌آورد و یک صفحه‌ی
+ * پوسته (shell) با تب در پورت SHELL_PORT سرو می‌کند که هر اسکنر را
+ * داخل iframe خودش نشان می‌دهد.
+ */
+const http  = require('http');
+const fs    = require('fs');
+const path  = require('path');
+const { spawn } = require('child_process');
+
+const SHELL_PORT = process.env.SHELL_PORT || 8080;
+
+// تعریف هر اسکنر: پورت، پوشه، و فایل سروری که باید با node اجرا شود
+const SCANNERS = [
+  { id: 'surfshark',  name: 'Surfshark',  port: 3002, dir: 'scanners/surfshark',  entry: 'surf_server.js' },
+  { id: 'nord',       name: 'NordVPN',    port: 3000, dir: 'scanners/nord',       entry: 'server.js'      },
+  { id: 'expressvpn', name: 'ExpressVPN', port: 3003, dir: 'scanners/expressvpn', entry: 'server.js'      },
+  { id: 'purevpn',    name: 'PureVPN',    port: 3004, dir: 'scanners/purevpn',    entry: 'server.js'      },
+];
+
+const children = [];
+
+function startScanner(s) {
+  const cwd = path.join(__dirname, s.dir);
+  const child = spawn(process.execPath, [s.entry], {
+    cwd,
+    env: { ...process.env, PORT: String(s.port) },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const tag = `[${s.name}]`;
+  child.stdout.on('data', d => process.stdout.write(`${tag} ${d}`));
+  child.stderr.on('data', d => process.stderr.write(`${tag} ${d}`));
+  child.on('exit', code => console.log(`${tag} exited (code ${code})`));
+  children.push(child);
+}
+
+function shutdown() {
+  console.log('\n⏹  در حال بستن همه‌ی اسکنرها...');
+  for (const c of children) { try { c.kill(); } catch {} }
+  process.exit(0);
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+// --- بالا آوردن اسکنرها ---
+console.log('🚀 در حال راه‌اندازی اسکنرها...');
+SCANNERS.forEach(startScanner);
+
+// --- سرور پوسته (تب‌ها + iframe) ---
+const shellHtml = fs.readFileSync(path.join(__dirname, 'shell.html'), 'utf8');
+
+const shell = http.createServer((req, res) => {
+  if (req.url === '/' || req.url === '/index.html') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    // لیست اسکنرها را به صورت JSON داخل صفحه تزریق می‌کنیم
+    const injected = shellHtml.replace(
+      '/*__SCANNERS__*/',
+      JSON.stringify(SCANNERS.map(({ id, name, port }) => ({ id, name, port })))
+    );
+    res.end(injected);
+    return;
+  }
+  res.writeHead(404); res.end('Not found');
+});
+
+shell.listen(SHELL_PORT, () => {
+  const url = `http://localhost:${SHELL_PORT}/`;
+  console.log(`\n✅ VPN Scanner Suite آماده است → ${url}\n`);
+  openBrowser(url);
+});
+
+function openBrowser(url) {
+  const platform = process.platform;
+  const cmd = platform === 'win32' ? 'cmd'
+            : platform === 'darwin' ? 'open'
+            : 'xdg-open';
+  const args = platform === 'win32' ? ['/c', 'start', '', url] : [url];
+  try { spawn(cmd, args, { stdio: 'ignore', detached: true }).unref(); } catch {}
+}

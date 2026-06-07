@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PureVPN Scanner</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Tahoma, system-ui, sans-serif;
+      background: #0d1117; color: #e6edf3; padding: 24px;
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #8b949e; font-size: 13px; margin-bottom: 20px; }
+    .bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    button {
+      background: #238636; color: #fff; border: 0; padding: 8px 16px;
+      border-radius: 6px; cursor: pointer; font-size: 14px;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    input {
+      background: #161b22; border: 1px solid #30363d; color: #e6edf3;
+      padding: 8px 10px; border-radius: 6px; min-width: 200px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid #21262d; }
+    th { color: #8b949e; font-weight: normal; position: sticky; top: 0; background: #0d1117; }
+    .ok   { color: #3fb950; }
+    .bad  { color: #f85149; }
+    .warn { color: #d29922; }
+    .pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #21262d; }
+    .muted { color: #8b949e; }
+  </style>
+</head>
+<body>
+  <h1>🟢 PureVPN Scanner</h1>
+  <div class="sub">اسکنر دسترسی سرورهای VPN از پشت DPI — PureVPN</div>
+
+  <div class="bar">
+    <button id="scanBtn">اسکن همه</button>
+    <input id="filter" placeholder="فیلتر بر اساس کشور / شهر..." />
+    <span id="status" class="muted"></span>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>کشور</th><th>پروتکل</th><th>وضعیت</th><th>روش</th><th>پینگ</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script>
+    let servers = [];
+    const rowsEl   = document.getElementById('rows');
+    const statusEl = document.getElementById('status');
+    const scanBtn  = document.getElementById('scanBtn');
+    const filterEl = document.getElementById('filter');
+
+    async function loadServers() {
+      statusEl.textContent = 'در حال بارگذاری سرورها...';
+      try {
+        const r = await fetch('/api/servers');
+        if (!r.ok) throw new Error('network');
+        const j = await r.json();
+        servers = j.servers || [];
+        statusEl.textContent = j.count + ' سرور بارگذاری شد';
+        render();
+      } catch (err) {
+        statusEl.textContent = 'خطا در دریافت سرورها';
+        console.error(err);
+      }
+    }
+
+    function matches(s, q) {
+      if (!q) return true;
+      const hay = [s.country, s.city, s.code, s.protocol, s.hostname]
+        .filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    }
+
+    function render() {
+      const q = filterEl.value.trim().toLowerCase();
+      rowsEl.innerHTML = '';
+      servers
+        .filter(s => matches(s, q))
+        .forEach((s, i) => {
+          const flag    = s.flag || '';
+          const country = s.country || 'نامشخص';
+          const code    = s.code || 'XX';
+          const proto   = s.protocol || s.city || '—';
+          const tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + (i + 1) + '</td>' +
+            '<td>' + flag + ' ' + country + ' <span class="muted">(' + code + ')</span></td>' +
+            '<td class="muted">' + proto + '</td>' +
+            '<td id="st-' + s.hostname + '" class="muted">—</td>' +
+            '<td id="mt-' + s.hostname + '" class="muted">—</td>' +
+            '<td id="pg-' + s.hostname + '" class="muted">—</td>';
+          rowsEl.appendChild(tr);
+        });
+    }
+
+    async function pingOne(host) {
+      const r = await fetch('/api/ping?host=' + encodeURIComponent(host));
+      const j = await r.json();
+      const st = document.getElementById('st-' + host);
+      const mt = document.getElementById('mt-' + host);
+      const pg = document.getElementById('pg-' + host);
+      if (!st) return;
+      if (j.vpnAccessible) { st.textContent = '✅ باز';  st.className = 'ok'; }
+      else if (j.ms != null) { st.textContent = '⚠ DPI'; st.className = 'warn'; }
+      else if (j.method === 'dns-fail') { st.textContent = '⛔ بدون DNS'; st.className = 'muted'; }
+      else { st.textContent = '❌ بسته'; st.className = 'bad'; }
+      mt.innerHTML = '<span class="pill">' + (j.method || '—') + '</span>';
+      pg.textContent = j.ms != null ? j.ms + ' ms' : '—';
+    }
+
+    async function scanAll() {
+      scanBtn.disabled = true;
+      const q = filterEl.value.trim().toLowerCase();
+      const visible = servers.filter(s => matches(s, q));
+      let done = 0;
+      const queue = [...visible];
+      async function worker() {
+        while (queue.length) {
+          const s = queue.shift();
+          await pingOne(s.hostname);
+          statusEl.textContent = (++done) + '/' + visible.length + ' اسکن شد';
+        }
+      }
+      await Promise.all(Array.from({ length: 8 }, worker));
+      scanBtn.disabled = false;
+    }
+
+    scanBtn.addEventListener('click', scanAll);
+    filterEl.addEventListener('input', render);
+    loadServers();
+  </script>
+</body>
+</html>

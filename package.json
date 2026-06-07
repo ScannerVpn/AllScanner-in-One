@@ -1,0 +1,12 @@
+{
+  "name": "vpn-scanner-suite",
+  "version": "1.0.0",
+  "description": "یک برنامه‌ی واحد که چهار اسکنر VPN (Surfshark، NordVPN، ExpressVPN، PureVPN) را با تب در یک مرورگر کنار هم نشان می‌دهد.",
+  "main": "suite.js",
+  "scripts": {
+    "start": "node suite.js",
+    "postinstall": "npm --prefix scanners/purevpn install && npm --prefix scanners/expressvpn install"
+  },
+  "author": "ScannerVpn",
+  "license": "MIT"
+}
