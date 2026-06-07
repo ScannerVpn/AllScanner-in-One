@@ -10,7 +10,8 @@ const fs    = require('fs');
 const path  = require('path');
 const { spawn } = require('child_process');
 
-const SHELL_PORT = process.env.SHELL_PORT || 8080;
+let SHELL_PORT = Number(process.env.SHELL_PORT) || 8080;
+const SHELL_PORT_BASE = SHELL_PORT;
 
 // تعریف هر اسکنر: پورت، پوشه، و فایل سروری که باید با node اجرا شود
 const SCANNERS = [
@@ -32,7 +33,13 @@ function startScanner(s) {
   const tag = `[${s.name}]`;
   child.stdout.on('data', d => process.stdout.write(`${tag} ${d}`));
   child.stderr.on('data', d => process.stderr.write(`${tag} ${d}`));
-  child.on('exit', code => console.log(`${tag} exited (code ${code})`));
+  child.on('exit', code => {
+    if (code && code !== 0) {
+      console.log(`${tag} متوقف شد (code ${code}) — احتمالاً پورت ${s.port} از قبل اشغال است (نمونه‌ی دیگری در حال اجراست؟)`);
+    } else {
+      console.log(`${tag} exited (code ${code})`);
+    }
+  });
   children.push(child);
 }
 
@@ -63,6 +70,18 @@ const shell = http.createServer((req, res) => {
     return;
   }
   res.writeHead(404); res.end('Not found');
+});
+
+// اگر پورت اشغال بود، خودکار پورت بعدی را امتحان می‌کنیم
+shell.on('error', err => {
+  if (err.code === 'EADDRINUSE' && SHELL_PORT < SHELL_PORT_BASE + 20) {
+    SHELL_PORT++;
+    console.log(`⚠ پورت ${SHELL_PORT - 1} مشغول است؛ تلاش روی ${SHELL_PORT}...`);
+    setTimeout(() => shell.listen(SHELL_PORT), 150);
+  } else {
+    console.error(`❌ نمی‌توان سرور پوسته را اجرا کرد: ${err.message}`);
+    shutdown();
+  }
 });
 
 shell.listen(SHELL_PORT, () => {
