@@ -21,7 +21,7 @@ async function startServer() {
   await loadServers();
   const SERVERS = getServers();
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '127.0.0.1', () => {
     console.log(`✅ PureVPN Scanner → http://localhost:${PORT}/`);
     console.log(`📡 ${SERVERS.length} servers loaded (${process.env.PUREVPN_SERVER_LIST_URL ? 'remote' : 'static'})`);
     console.log(`🔑 DNS: System DNS with Cloudflare DoH fallback`);

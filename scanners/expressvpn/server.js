@@ -27,7 +27,7 @@ async function startServer() {
   await loadServers();
   const SERVERS = getServers();
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '127.0.0.1', () => {
     console.log(`✅ Express Scanner → http://localhost:${PORT}/`);
     console.log(`📡 ${SERVERS.length} ExpressVPN servers loaded (source: ${getSource()})`);
     console.log(`🔑 DNS: System DNS with Cloudflare DoH fallback`);

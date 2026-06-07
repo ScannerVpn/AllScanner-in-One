@@ -2,11 +2,41 @@
   "name": "vpn-scanner-suite",
   "version": "1.0.0",
   "description": "یک برنامه‌ی واحد که هشت اسکنر VPN (Surfshark، NordVPN، ExpressVPN، PureVPN، Mullvad، PIA، Windscribe، Proton) را با تب در یک مرورگر کنار هم نشان می‌دهد.",
-  "main": "suite.js",
+  "main": "electron/main.js",
   "scripts": {
     "start": "node suite.js",
+    "app": "electron .",
+    "setup-node": "node scripts/fetch-node.js",
+    "predist": "node scripts/fetch-node.js",
+    "dist": "electron-builder --win nsis",
     "postinstall": "npm --prefix scanners/purevpn install && npm --prefix scanners/expressvpn install && npm --prefix scanners/mullvad install && npm --prefix scanners/pia install && npm --prefix scanners/windscribe install && npm --prefix scanners/proton install"
   },
   "author": "ScannerVpn",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^42.3.3",
+    "electron-builder": "^26.15.0"
+  },
+  "build": {
+    "appId": "com.scannervpn.suite",
+    "productName": "VPN Scanner Suite",
+    "files": [
+      "electron/**/*",
+      "shell.html",
+      "package.json"
+    ],
+    "asar": true,
+    "extraResources": [
+      { "from": "scanners", "to": "scanners", "filter": ["**/*"] },
+      { "from": "vendor/node", "to": "node", "filter": ["**/*"] }
+    ],
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
 }

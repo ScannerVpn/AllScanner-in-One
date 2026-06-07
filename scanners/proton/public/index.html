@@ -11,56 +11,75 @@
       --text:#e6edf3; --muted:#8b949e;
       --accent:#2f81f7; --accent2:#1f6feb;
       --green:#3fb950; --yellow:#d29922; --red:#f85149;
+      --shadow:0 10px 30px -18px rgba(1,4,9,.9);
       color-scheme:dark;
     }
     *{box-sizing:border-box; margin:0; padding:0}
     body{
-      background:var(--bg); color:var(--text);
+      background:
+        radial-gradient(1100px 520px at 100% -8%, rgba(47,129,247,.10), transparent 60%),
+        radial-gradient(900px 480px at -8% 112%, rgba(63,185,80,.06), transparent 55%),
+        var(--bg);
+      background-attachment:fixed;
+      color:var(--text);
       font-family:Tahoma,'Segoe UI',system-ui,sans-serif;
+      -webkit-font-smoothing:antialiased;
       min-height:100vh; padding:20px;
     }
     h1{
+      position:relative;
       display:flex; align-items:center; gap:10px;
       font-size:18px; font-weight:700; margin-bottom:6px;
-      padding:14px 18px; border-radius:12px;
+      padding:14px 18px 14px 22px; border-radius:12px;
       background:linear-gradient(135deg,#11161d,#161b22);
       border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      overflow:hidden;
     }
-    h1 .logo{font-size:22px}
+    h1::before{
+      content:""; position:absolute; inset-inline-start:0; top:0; bottom:0;
+      width:4px; background:linear-gradient(180deg,var(--accent),var(--accent2));
+    }
+    h1 .logo{font-size:22px; filter:drop-shadow(0 0 8px rgba(47,129,247,.4))}
     .badge-pill{
       margin-inline-start:auto; font-size:11px; font-weight:600;
       padding:4px 12px; border-radius:20px;
       background:var(--surface); border:1px solid var(--border); color:var(--muted);
+      transition:.2s;
     }
-    .badge-pill.ok{color:var(--green); border-color:#23863666; background:#102017}
+    .badge-pill.ok{color:var(--green); border-color:#23863666; background:#102017; box-shadow:0 0 0 3px rgba(63,185,80,.10)}
     .sub{color:var(--muted); font-size:13px; margin:0 4px 18px}
     .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:16px}
-    .stat{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px 16px; display:flex; flex-direction:column; gap:4px}
+    .stat{position:relative; background:linear-gradient(160deg,var(--surface),var(--surface2)); border:1px solid var(--border); border-radius:12px; padding:13px 16px; display:flex; flex-direction:column; gap:4px; overflow:hidden; transition:transform .15s, border-color .15s, box-shadow .15s}
+    .stat::before{content:""; position:absolute; top:0; inset-inline:0; height:2px; background:linear-gradient(90deg,transparent,rgba(47,129,247,.5),transparent); opacity:0; transition:opacity .15s}
+    .stat:hover{transform:translateY(-2px); border-color:#3d444d; box-shadow:var(--shadow)}
+    .stat:hover::before{opacity:1}
     .stat-label{font-size:11px; color:var(--muted); letter-spacing:.3px}
     .stat-val{font-size:22px; font-weight:700}
     .toolbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:14px}
-    input{background:var(--surface); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:8px; font-size:13px; outline:none; min-width:200px}
-    input:focus{border-color:var(--accent)}
+    input{background:var(--surface); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:8px; font-size:13px; outline:none; min-width:200px; transition:border-color .15s, box-shadow .15s}
+    input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,129,247,.18)}
     input::placeholder{color:var(--muted)}
     .btn{display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; transition:.15s}
     .btn:hover{border-color:var(--accent); background:var(--surface2)}
-    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; color:#fff}
-    .btn-primary:hover{opacity:.9}
-    .btn:disabled{opacity:.5; cursor:default}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; color:#fff; box-shadow:0 4px 14px -4px rgba(47,129,247,.55)}
+    .btn-primary:hover{filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 6px 18px -4px rgba(47,129,247,.65)}
+    .btn:disabled{opacity:.5; cursor:default; transform:none; box-shadow:none; filter:none}
     .chip{font-size:12px; padding:6px 13px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--muted); cursor:pointer; transition:.15s; white-space:nowrap}
-    .chip:hover{color:var(--text)}
-    .chip.active{background:var(--accent); border-color:var(--accent); color:#fff}
+    .chip:hover{color:var(--text); border-color:#3d444d}
+    .chip.active{background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 2px 10px -2px rgba(47,129,247,.6)}
     .progress{font-size:12px; color:var(--muted)}
-    .table-wrap{background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; overflow-x:auto}
+    .table-wrap{background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; overflow-x:auto; box-shadow:var(--shadow)}
     table{width:100%; border-collapse:collapse; font-size:13px}
     thead th{padding:10px 14px; text-align:start; background:var(--surface2); color:var(--muted); font-size:11px; font-weight:600; letter-spacing:.3px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5; white-space:nowrap}
-    tbody td{padding:9px 14px; border-bottom:1px solid #21262d; vertical-align:middle}
+    tbody td{padding:9px 14px; border-bottom:1px solid #21262d; vertical-align:middle; transition:background .12s}
     tbody tr:last-child td{border-bottom:none}
     tbody tr:hover td{background:#1b222b}
     .ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--yellow)} .muted{color:var(--muted)}
     .pill{font-size:11px; padding:2px 8px; border-radius:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text)}
     ::-webkit-scrollbar{width:10px; height:10px}
     ::-webkit-scrollbar-thumb{background:#30363d; border-radius:6px}
+    ::-webkit-scrollbar-thumb:hover{background:#3d444d}
     ::-webkit-scrollbar-track{background:transparent}
   </style>
 </head>

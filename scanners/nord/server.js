@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const NORD_CACHE_PATH = path.join(os.homedir(), 'AppData', 'Local', 'NordVPN', 'servers_v2.json');
 
 // وقتی برنامه به صورت exe پکیج میشه، __dirname داخل app.asar هست و نمیشه
@@ -533,7 +533,7 @@ const server = http.createServer((req, res) => {
   res.writeHead(404); res.end('Not found');
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`✓ سرور: http://localhost:${PORT}/dashboard.html`);
   if (fs.existsSync(NORD_CACHE_PATH)) {
     const stat = fs.statSync(NORD_CACHE_PATH);

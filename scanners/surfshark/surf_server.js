@@ -8,7 +8,7 @@ const net    = require('net');
 const dns    = require('dns');
 const { exec } = require('child_process');
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 // ==================== Surfshark server list ====================
 const SURF_SERVERS = [

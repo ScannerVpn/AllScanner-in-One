@@ -19,7 +19,7 @@ app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 async function startServer() {
   await loadServers();
   const SERVERS = getServers();
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '127.0.0.1', () => {
     console.log(`✅ Proton VPN Scanner → http://localhost:${PORT}/`);
     console.log(`📡 ${SERVERS.length} servers loaded (source: ${getSource()})`);
   });
