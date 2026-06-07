@@ -19,8 +19,14 @@
 ### روش دستی
 ```bash
 git clone https://github.com/ScannerVpn/AllScanner-in-One.git
+```
+```bash
 cd AllScanner-in-One
-npm install        # فقط بار اول (express را برای دو اسکنر نصب می‌کند)
+```
+```bash
+npm install
+```
+```bash
 npm start
 ```
 سپس مرورگر روی `http://localhost:8080/` باز می‌شود.
