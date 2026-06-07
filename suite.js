@@ -19,6 +19,10 @@ const SCANNERS = [
   { id: 'nord',       name: 'NordVPN',    port: 3000, dir: 'scanners/nord',       entry: 'server.js'      },
   { id: 'expressvpn', name: 'ExpressVPN', port: 3003, dir: 'scanners/expressvpn', entry: 'server.js'      },
   { id: 'purevpn',    name: 'PureVPN',    port: 3004, dir: 'scanners/purevpn',    entry: 'server.js'      },
+  { id: 'mullvad',    name: 'Mullvad',    port: 3005, dir: 'scanners/mullvad',    entry: 'server.js'      },
+  { id: 'pia',        name: 'PIA',        port: 3006, dir: 'scanners/pia',        entry: 'server.js'      },
+  { id: 'windscribe', name: 'Windscribe', port: 3007, dir: 'scanners/windscribe', entry: 'server.js'      },
+  { id: 'proton',     name: 'Proton VPN', port: 3008, dir: 'scanners/proton',     entry: 'server.js'      },
 ];
 
 const children = [];

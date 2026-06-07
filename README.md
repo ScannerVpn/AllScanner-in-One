@@ -1,11 +1,15 @@
 # 🛡️ VPN Scanner Suite
 
-چهار اسکنر VPN در یک برنامه‌ی واحد با تب‌بندی بالای صفحه. با یک بار اجرا، همه‌ی اسکنرها بالا می‌آیند و می‌توانی بین آن‌ها جابجا شوی:
+هشت اسکنر VPN در یک برنامه‌ی واحد با تب‌بندی بالای صفحه. با یک بار اجرا، همه‌ی اسکنرها بالا می‌آیند و می‌توانی بین آن‌ها جابجا شوی:
 
 - **Surfshark**
 - **NordVPN**
 - **ExpressVPN**
 - **PureVPN**
+- **Mullvad**
+- **PIA** (Private Internet Access)
+- **Windscribe**
+- **Proton VPN**
 
 ## اجرا
 
@@ -33,7 +37,11 @@ vpn-scanner-suite/
     ├── surfshark/    # پورت 3002 (Node خام)
     ├── nord/         # پورت 3000 (Node خام)
     ├── expressvpn/   # پورت 3003 (Express)
-    └── purevpn/      # پورت 3004 (Express)
+    ├── purevpn/      # پورت 3004 (Express)
+    ├── mullvad/      # پورت 3005 (Express)
+    ├── pia/          # پورت 3006 (Express)
+    ├── windscribe/   # پورت 3007 (Express)
+    └── proton/       # پورت 3008 (Express)
 ```
 
 ## چطور کار می‌کند
@@ -52,6 +60,10 @@ vpn-scanner-suite/
 | Surfshark | 3002 |
 | ExpressVPN | 3003 |
 | PureVPN | 3004 |
+| Mullvad | 3005 |
+| PIA | 3006 |
+| Windscribe | 3007 |
+| Proton VPN | 3008 |
 
 اگر پورتی اشغال بود، می‌توانی پورت پوسته را تغییر بدهی:
 ```bash
