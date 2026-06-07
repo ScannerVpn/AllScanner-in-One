@@ -14,6 +14,8 @@
 
 ### روش دستی
 ```bash
+git clone https://github.com/ScannerVpn/AllScanner-in-One.git
+cd AllScanner-in-One
 npm install        # فقط بار اول (express را برای دو اسکنر نصب می‌کند)
 npm start
 ```
