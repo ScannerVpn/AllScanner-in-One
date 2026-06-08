@@ -1,0 +1,29 @@
+{
+  "name": "surfshark-dashboard",
+  "version": "1.0.0",
+  "description": "Surfshark Server Scanner — Iran DPI Detection",
+  "main": "surf_main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node surf_server.js",
+    "dev": "start cmd /k node surf_server.js && electron .",
+    "dist": "electron-builder"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^42.3.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.surf.dashboard",
+    "productName": "Surfshark Dashboard",
+    "files": ["surf_main.js", "surf_server.js", "surf_dashboard.html"],
+    "win": {
+      "target": { "target": "nsis", "arch": ["x64"] },
+      "compression": "maximum"
+    },
+    "nsis": { "oneClick": true, "perMachine": false }
+  }
+}

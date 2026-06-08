@@ -1,0 +1,5 @@
+node_modules/
+dist/
+servers_cache.json
+*.log
+.DS_Store

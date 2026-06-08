@@ -1,0 +1,8 @@
+{
+  "name": "vpn-scanner-suite-node",
+  "version": "1.0.0",
+  "description": "بک‌اند تک‌پروسه‌ی اسکنرها برای اجرا داخل nodejs-mobile",
+  "main": "main.js",
+  "author": "ScannerVpn",
+  "license": "MIT"
+}

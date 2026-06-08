@@ -1,0 +1,17 @@
+{
+  "name": "nordvpn-dashboard",
+  "version": "1.0.0",
+  "description": "NordVPN Dashboard with API Proxy",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server.js",
+    "dev": "start cmd /k node server.js && electron ."
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^42.3.0"
+  }
+}
