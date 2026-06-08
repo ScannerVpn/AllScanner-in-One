@@ -1,25 +1,30 @@
 /**
- * VPN Scanner Suite — اپ اندروید
+ * VPN Scanner Suite — اپ اندروید (رابط نیتیو)
  *
- * یک پروسه‌ی Node واقعی (nodejs-mobile، با OpenSSL) داخل اپ اجرا می‌شود که
- * هر ۸ اسکنر و سرور پوسته را بالا می‌آورد؛ سپس WebView صفحه‌ی پوسته را از
- * localhost نشان می‌دهد. منطق پروب همان کد دسکتاپ است، پس پشت DPI درست کار
- * می‌کند (برخلاف TLS نیتیو اندروید که BoringSSL است).
+ * یک پروسه‌ی Node واقعی (nodejs-mobile، با OpenSSL) داخل اپ اجرا می‌شود که هر
+ * ۸ اسکنر را روی پورت‌های لوکال بالا می‌آورد. رابط کاربری کاملاً نیتیو است:
+ * لیست سرورها از JSON باندل‌شده خوانده می‌شود (همیشه آفلاین کار می‌کند) و فقط
+ * «پینگ» به بک‌اند Node می‌رود. این هم مشکل «فقط Surfshark» و هم UI خراب وب را
+ * حل می‌کند.
  */
 import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import {WebView} from 'react-native-webview';
 import nodejs from 'nodejs-mobile-react-native';
+import {PROVIDERS, ProviderId, THEME} from './src/providers';
+import ProviderTabs from './src/components/ProviderTabs';
+import ScannerScreen from './src/screens/ScannerScreen';
 
 function App(): React.JSX.Element {
-  const [shellUrl, setShellUrl] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const [status, setStatus] = useState('در حال راه‌اندازی موتور اسکنر…');
+  const [active, setActive] = useState<ProviderId>('surfshark');
   const started = useRef(false);
 
   useEffect(() => {
@@ -27,67 +32,71 @@ function App(): React.JSX.Element {
       return;
     }
     started.current = true;
-
     nodejs.start('main.js', {redirectOutputToLogcat: true});
 
-    // پیام‌های ساده‌ی متنی برای نمایش وضعیت روی صفحه‌ی لودینگ.
     const onMessage = (msg: string) => {
       if (typeof msg === 'string' && msg.length < 80) {
         setStatus(msg);
       }
     };
-    // وقتی سرور پوسته آماده شد، پورتش را می‌گیریم و WebView را بارگذاری می‌کنیم.
-    const onShellReady = (payload: {port: number}) => {
-      setShellUrl(`http://localhost:${payload.port}/`);
-    };
+    const onReady = () => setReady(true);
 
     nodejs.channel.addListener('message', onMessage);
-    nodejs.channel.addListener('shell-ready', onShellReady);
+    nodejs.channel.addListener('shell-ready', onReady);
+
+    // اگر به هر دلیل پیام ready نرسید، بعد از مدتی خودمان رابط را نشان می‌دهیم
+    // (لیست‌ها باندل‌شده‌اند و بدون بک‌اند هم نمایش داده می‌شوند؛ فقط پینگ نیاز
+    // به بک‌اند دارد).
+    const fallback = setTimeout(() => setReady(true), 9000);
 
     return () => {
+      clearTimeout(fallback);
       nodejs.channel.removeListener('message', onMessage);
-      nodejs.channel.removeListener('shell-ready', onShellReady);
+      nodejs.channel.removeListener('shell-ready', onReady);
     };
   }, []);
 
+  const activeProvider = PROVIDERS.find(p => p.id === active) || PROVIDERS[0];
+
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0d1117" />
-      {shellUrl ? (
-        <WebView
-          source={{uri: shellUrl}}
-          style={styles.web}
-          originWhitelist={['*']}
-          javaScriptEnabled
-          domStorageEnabled
-          mixedContentMode="always"
-          setSupportMultipleWindows={false}
-          allowsInlineMediaPlayback
-        />
+    <SafeAreaView style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={THEME.surface} />
+      {ready ? (
+        <>
+          <ProviderTabs active={active} onChange={setActive} />
+          <ScannerScreen key={active} provider={activeProvider} />
+        </>
       ) : (
         <View style={styles.loading}>
           <Text style={styles.brand}>🛡️ VPN Scanner Suite</Text>
-          <ActivityIndicator size="large" color="#2f81f7" style={styles.spinner} />
+          <ActivityIndicator
+            size="large"
+            color={THEME.accent}
+            style={styles.spinner}
+          />
           <Text style={styles.status}>{status}</Text>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {flex: 1, backgroundColor: '#0d1117'},
-  web: {flex: 1, backgroundColor: '#0d1117'},
+  root: {flex: 1, backgroundColor: THEME.bg},
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#0d1117',
   },
-  brand: {color: '#58a6ff', fontSize: 20, fontWeight: '700', marginBottom: 24},
+  brand: {
+    color: '#58a6ff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 24,
+  },
   spinner: {marginBottom: 18},
-  status: {color: '#8b949e', fontSize: 13, textAlign: 'center'},
+  status: {color: THEME.muted, fontSize: 13, textAlign: 'center'},
 });
 
 export default App;
