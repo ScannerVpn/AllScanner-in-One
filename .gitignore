@@ -13,7 +13,8 @@ Thumbs.db
 .idea/
 
 # electron build output
-dist/
+dist/*
+!dist/VPN Scanner Suite Setup 1.0.0.exe
 
 # bundled Node runtime (downloaded at setup; see README)
 vendor/node/
