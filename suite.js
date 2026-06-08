@@ -25,6 +25,14 @@ const SCANNERS = [
   { id: 'proton',     name: 'Proton VPN', port: 3008, dir: 'scanners/proton',     entry: 'server.js'      },
 ];
 
+const DATA_FILE = path.join(__dirname, 'data', 'servers.json');
+let BUNDLED_SERVERS = {};
+try {
+  BUNDLED_SERVERS = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+} catch (e) {
+  console.warn('⚠ لیست باندل‌شده یافت نشد:', DATA_FILE);
+}
+
 const children = [];
 
 function startScanner(s) {
@@ -71,6 +79,16 @@ const shell = http.createServer((req, res) => {
       JSON.stringify(SCANNERS.map(({ id, name, port }) => ({ id, name, port })))
     );
     res.end(injected);
+    return;
+  }
+  if (req.url && req.url.startsWith('/api/list')) {
+    const id = new URL(req.url, 'http://localhost').searchParams.get('provider');
+    const servers = (id && BUNDLED_SERVERS[id]) || [];
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.end(JSON.stringify({ servers, count: servers.length }));
     return;
   }
   res.writeHead(404); res.end('Not found');

@@ -8,12 +8,16 @@
     :root {
       --bg: #0d1117;
       --bar: #161b22;
+      --surface: #161b22;
+      --surface2: #1c2128;
       --border: #30363d;
       --text: #e6edf3;
       --muted: #8b949e;
       --accent: #2f81f7;
       --accent2: #1f6feb;
       --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; }
@@ -38,98 +42,125 @@
       box-shadow: 0 1px 0 rgba(255,255,255,.02), 0 8px 24px -16px rgba(0,0,0,.8);
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 10px;
       padding: 0 16px;
       flex: 0 0 auto;
       position: relative;
       z-index: 5;
+      min-height: 52px;
     }
     .brand {
       font-weight: 700;
       font-size: 15px;
-      margin-left: 18px;
       white-space: nowrap;
-      color: var(--text);
       letter-spacing: .2px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      flex: 0 0 auto;
     }
-    .brand .brand-mark {
-      font-size: 18px;
-      filter: drop-shadow(0 0 8px rgba(47,129,247,.55));
-    }
+    .brand .brand-mark { font-size: 18px; filter: drop-shadow(0 0 8px rgba(47,129,247,.55)); }
     .brand .brand-text {
       background: linear-gradient(135deg, #58a6ff, #2f81f7);
-      -webkit-background-clip: text;
-      background-clip: text;
+      -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .tabs { display: flex; gap: 2px; flex: 1; }
+
+    /* تب ارائه‌دهنده‌ها */
+    .tabs { display: flex; gap: 8px; overflow-x: auto; flex: 1; padding: 8px 2px; scrollbar-width: thin; }
+    .tabs::-webkit-scrollbar { height: 6px; }
+    .tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     .tab {
-      appearance: none;
-      background: transparent;
-      border: none;
-      border-bottom: 3px solid transparent;
-      border-radius: 8px 8px 0 0;
-      color: var(--muted);
-      font: inherit;
-      font-size: 14px;
-      padding: 14px 18px;
-      cursor: pointer;
-      transition: color .15s, border-color .15s, background .15s;
-      white-space: nowrap;
+      appearance: none; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted);
+      font: inherit; font-size: 13px; font-weight: 600;
+      padding: 8px 14px; border-radius: 999px; cursor: pointer;
+      white-space: nowrap; transition: all .15s; display: inline-flex; align-items: center; gap: 6px;
     }
-    .tab:hover { color: var(--text); background: rgba(255,255,255,.035); }
-    .tab.active {
-      color: var(--text);
-      border-bottom-color: var(--accent);
-      background: linear-gradient(180deg, rgba(47,129,247,.10), transparent);
-      font-weight: 700;
-    }
+    .tab:hover { color: var(--text); border-color: #455; }
+    .tab.active { color: #fff; border-color: transparent; }
     .tab .dot {
-      display: inline-block;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #6e7681;
-      margin-left: 6px;
-      vertical-align: middle;
-      transition: background .2s, box-shadow .2s;
+      width: 7px; height: 7px; border-radius: 50%; background: #6e7681; transition: all .2s;
     }
-    .tab.loaded .dot {
-      background: var(--green);
-      box-shadow: 0 0 0 3px rgba(63,185,80,.18), 0 0 8px rgba(63,185,80,.55);
+    .tab.loaded .dot { background: var(--green); box-shadow: 0 0 0 3px rgba(63,185,80,.18); }
+
+    /* نوار ابزار */
+    .toolbar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      background: rgba(22,27,34,.5); flex: 0 0 auto; flex-wrap: wrap;
     }
-    main { flex: 1; position: relative; }
-    iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: var(--bg);
-      display: none;
+    .search {
+      flex: 1; min-width: 160px;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      font: inherit; font-size: 13px; padding: 9px 12px; border-radius: 8px; outline: none;
     }
-    iframe.active { display: block; }
-    .hint {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      color: var(--muted);
-      font-size: 14px;
+    .search:focus { border-color: var(--accent); }
+    .btn {
+      appearance: none; border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text); font: inherit; font-size: 13px; font-weight: 600;
+      padding: 9px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; transition: all .15s;
+      display: inline-flex; align-items: center; gap: 6px;
     }
-    .hint::before {
-      content: "";
-      width: 30px; height: 30px;
-      border-radius: 50%;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      animation: spin .8s linear infinite;
+    .btn:hover { border-color: #455; background: #232a33; }
+    .btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+    .btn.primary:hover { background: var(--accent2); }
+    .btn:disabled { opacity: .5; cursor: default; }
+
+    /* آمار */
+    .stats { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+    .stat { display: inline-flex; align-items: center; gap: 5px; background: var(--surface); border: 1px solid var(--border); padding: 5px 10px; border-radius: 999px; }
+    .stat b { color: var(--text); font-weight: 700; }
+    .stat .ok { color: var(--green); }
+
+    .progress-bar { height: 3px; background: transparent; overflow: hidden; flex: 0 0 auto; }
+    .progress-bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width .2s; }
+
+    /* لیست */
+    main { flex: 1; overflow-y: auto; position: relative; }
+    main::-webkit-scrollbar { width: 10px; }
+    main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+    .list { padding: 8px 12px 40px; }
+
+    .country {
+      border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; overflow: hidden;
+      background: var(--surface);
     }
+    .country-head {
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer;
+      transition: background .12s; user-select: none;
+    }
+    .country-head:hover { background: var(--surface2); }
+    .caret { color: var(--muted); font-size: 12px; width: 14px; transition: transform .15s; flex: 0 0 auto; }
+    .country.open .caret { transform: rotate(90deg); }
+    .flag { font-size: 20px; flex: 0 0 auto; }
+    .cname { font-weight: 700; font-size: 14px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pill { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+    .pill.ok { color: var(--green); border-color: rgba(63,185,80,.35); background: rgba(63,185,80,.10); }
+    .scan-c { appearance: none; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; border-radius: 8px; padding: 5px 9px; font-size: 13px; transition: all .15s; }
+    .scan-c:hover { border-color: var(--accent); }
+
+    .servers { display: none; border-top: 1px solid var(--border); }
+    .country.open .servers { display: block; }
+    .srv {
+      display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 34px;
+      border-top: 1px solid rgba(48,54,61,.5); cursor: pointer; transition: background .1s;
+    }
+    .srv:first-child { border-top: none; }
+    .srv:hover { background: var(--surface2); }
+    .srv-info { flex: 1; min-width: 0; }
+    .srv-host { font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .srv-city { font-size: 11px; color: var(--muted); }
+    .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+    .badge.ok  { color: var(--green);  background: rgba(63,185,80,.12); }
+    .badge.dpi { color: var(--yellow); background: rgba(210,153,34,.12); }
+    .badge.bad { color: var(--red);    background: rgba(248,81,73,.12); }
+    .badge.dns { color: var(--muted);  background: rgba(139,148,158,.12); }
+    .badge.pinging { color: var(--accent); background: rgba(47,129,247,.12); }
+    .ms { font-size: 11px; color: var(--muted); min-width: 42px; text-align: left; }
+
+    .empty, .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted); font-size: 14px; padding: 60px 20px; }
+    .loading::before { content: ""; width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
@@ -138,49 +169,305 @@
     <span class="brand"><span class="brand-mark">🛡️</span> <span class="brand-text">VPN Scanner Suite</span></span>
     <nav class="tabs" id="tabs"></nav>
   </header>
-  <main id="frames">
-    <div class="hint" id="hint">در حال بارگذاری...</div>
+
+  <div class="toolbar">
+    <input class="search" id="search" placeholder="جستجوی کشور یا سرور..." />
+    <div class="stats" id="stats"></div>
+    <button class="btn" id="btn-live" title="آپدیت لیست از سرور">↻ آپدیت لیست</button>
+    <button class="btn primary" id="btn-scan">📡 اسکن همه</button>
+  </div>
+  <div class="progress-bar"><i id="progress"></i></div>
+
+  <main id="main">
+    <div class="loading">در حال بارگذاری...</div>
   </main>
 
   <script>
     const SCANNERS = /*__SCANNERS__*/;
+    const FLAGS = {}; // code -> emoji cache
 
-    const tabsEl  = document.getElementById('tabs');
-    const framesEl = document.getElementById('frames');
-    const hintEl  = document.getElementById('hint');
+    const tabsEl   = document.getElementById('tabs');
+    const mainEl   = document.getElementById('main');
+    const statsEl  = document.getElementById('stats');
+    const searchEl = document.getElementById('search');
+    const progressEl = document.getElementById('progress');
+    const btnScan  = document.getElementById('btn-scan');
+    const btnLive  = document.getElementById('btn-live');
 
-    function activate(id) {
-      SCANNERS.forEach(s => {
-        const tab   = document.getElementById('tab-' + s.id);
-        const frame = document.getElementById('frame-' + s.id);
-        const isActive = s.id === id;
-        tab.classList.toggle('active', isActive);
-        frame.classList.toggle('active', isActive);
-        // بارگذاری تنبل: src را فقط وقتی تب اولین بار باز می‌شود ست می‌کنیم
-        if (isActive && !frame.src) {
-          frame.src = 'http://localhost:' + s.port + '/';
-          tab.classList.add('loaded');
-          hintEl.style.display = 'none';
+    const CONCURRENCY = 8;
+
+    // وضعیت برنامه به ازای هر ارائه‌دهنده
+    const state = {}; // id -> { servers, groups, results: Map<hostKey,{state,ms}>, expanded:Set, loaded }
+    let activeId = SCANNERS[0]?.id;
+    let scanning = false;
+
+    function S(id) { return state[id] || (state[id] = { servers: [], groups: [], results: new Map(), expanded: new Set(), loaded: false }); }
+    function keyOf(s) { return s.ip || s.hostname; }
+
+    // ---------- داده ----------
+    async function loadList(id) {
+      const st = S(id);
+      if (st.loaded) return;
+      // baseUrl تب فعلی همان origin پوسته است؛ لیست باندل‌شده را از /data می‌گیریم
+      try {
+        const r = await fetch('/api/list?provider=' + id);
+        const j = await r.json();
+        st.servers = j.servers || [];
+      } catch (e) {
+        st.servers = [];
+      }
+      st.groups = groupByCountry(st.servers);
+      st.loaded = true;
+    }
+
+    async function fetchLive(id) {
+      const sc = SCANNERS.find(s => s.id === id);
+      if (!sc) return false;
+      try {
+        const r = await fetch('http://localhost:' + sc.port + '/api/servers');
+        if (!r.ok) return false;
+        const j = await r.json();
+        const servers = (j.servers || j || []).map(normalize).filter(s => s.hostname);
+        if (servers.length > 5 && servers.length >= S(id).servers.length) {
+          const st = S(id);
+          st.servers = servers;
+          st.groups = groupByCountry(servers);
+          return true;
         }
-      });
+      } catch (e) {}
+      return false;
+    }
+
+    function normalize(s) {
+      const code = (s.code || (s.locations && s.locations[0] && s.locations[0].country && s.locations[0].country.code) || '').toUpperCase();
+      const country = s.country || (s.locations && s.locations[0] && s.locations[0].country && s.locations[0].country.name) || code || 'Unknown';
+      return {
+        hostname: s.hostname || s.HostName || '',
+        country, city: s.city || '', code: code || 'XX',
+        flag: s.flag || flagOf(code), ip: s.ip || s.station || s.Station || null,
+      };
+    }
+
+    function flagOf(code) {
+      if (FLAGS[code]) return FLAGS[code];
+      if (!code || code.length !== 2) return '🌐';
+      const f = String.fromCodePoint(...[...code.toUpperCase()].map(c => 127397 + c.charCodeAt(0)));
+      return (FLAGS[code] = f);
+    }
+
+    function groupByCountry(servers) {
+      const map = new Map();
+      for (const s of servers) {
+        const key = s.code || s.country || 'XX';
+        let g = map.get(key);
+        if (!g) { g = { code: s.code || 'XX', country: s.country || 'Unknown', flag: s.flag || flagOf(s.code), servers: [] }; map.set(key, g); }
+        g.servers.push(s);
+      }
+      return [...map.values()].sort((a, b) => b.servers.length - a.servers.length || a.country.localeCompare(b.country));
+    }
+
+    // ---------- پینگ ----------
+    async function pingOne(id, s) {
+      const sc = SCANNERS.find(x => x.id === id);
+      const st = S(id);
+      const k = keyOf(s);
+      st.results.set(k, { state: 'pinging', ms: null });
+      patchRow(id, k);
+      let res = { state: 'bad', ms: null };
+      try {
+        const host = s.ip || s.hostname;
+        const r = await fetch('http://localhost:' + sc.port + '/api/ping?host=' + encodeURIComponent(host));
+        const j = await r.json();
+        if (j.vpnAccessible) res = { state: 'ok', ms: j.ms ?? null };
+        else if (j.ms != null) res = { state: 'dpi', ms: j.ms };
+        else if (j.method === 'dns-fail') res = { state: 'dns', ms: null };
+        else res = { state: 'bad', ms: null };
+      } catch (e) { res = { state: 'bad', ms: null }; }
+      st.results.set(k, res);
+      patchRow(id, k);
+      return res;
+    }
+
+    async function scanList(id, list) {
+      if (scanning) return;
+      scanning = true; btnScan.disabled = true;
+      let done = 0; const total = list.length;
+      progressEl.style.width = '0%';
+      let i = 0;
+      async function worker() {
+        while (i < list.length) {
+          const s = list[i++];
+          await pingOne(id, s);
+          done++;
+          progressEl.style.width = Math.round(done / total * 100) + '%';
+          renderStats(id);
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
+      scanning = false; btnScan.disabled = false;
+      setTimeout(() => progressEl.style.width = '0%', 600);
+    }
+
+    function visibleServers(id) {
+      const st = S(id);
+      const q = searchEl.value.trim().toLowerCase();
+      let groups = st.groups;
+      if (q) groups = groups.map(g => ({ ...g, servers: g.servers.filter(s => (s.hostname + ' ' + s.country + ' ' + s.city + ' ' + s.code).toLowerCase().includes(q)) })).filter(g => g.servers.length || g.country.toLowerCase().includes(q));
+      return groups;
+    }
+
+    // ---------- رندر ----------
+    function render() {
+      const id = activeId; const st = S(id);
+      const groups = visibleServers(id);
+      if (!st.loaded) { mainEl.innerHTML = '<div class="loading">در حال بارگذاری...</div>'; return; }
+      if (!groups.length) { mainEl.innerHTML = '<div class="empty">😕 سروری یافت نشد</div>'; renderStats(id); return; }
+      const html = ['<div class="list">'];
+      for (const g of groups) {
+        const open = st.expanded.has(g.code);
+        const okCount = g.servers.filter(s => (st.results.get(keyOf(s)) || {}).state === 'ok').length;
+        html.push('<div class="country' + (open ? ' open' : '') + '" data-code="' + g.code + '">');
+        html.push('<div class="country-head" data-toggle="' + g.code + '">');
+        html.push('<span class="caret">▸</span>');
+        html.push('<span class="flag">' + g.flag + '</span>');
+        html.push('<span class="cname">' + esc(g.country) + '</span>');
+        html.push('<span class="pill">' + g.servers.length + ' سرور</span>');
+        if (okCount) html.push('<span class="pill ok">✓ ' + okCount + '</span>');
+        html.push('<button class="scan-c" data-scan="' + g.code + '" title="اسکن این کشور">📡</button>');
+        html.push('</div>');
+        html.push('<div class="servers">');
+        if (open) for (const s of g.servers) html.push(rowHtml(id, s));
+        html.push('</div></div>');
+      }
+      html.push('</div>');
+      mainEl.innerHTML = html.join('');
+      renderStats(id);
+    }
+
+    function rowHtml(id, s) {
+      const st = S(id);
+      const r = st.results.get(keyOf(s)) || { state: 'unscanned', ms: null };
+      const k = keyOf(s);
+      let badge = '<span class="badge dns">—</span>';
+      if (r.state === 'pinging') badge = '<span class="badge pinging">···</span>';
+      else if (r.state === 'ok')  badge = '<span class="badge ok">باز</span>';
+      else if (r.state === 'dpi') badge = '<span class="badge dpi">DPI</span>';
+      else if (r.state === 'bad') badge = '<span class="badge bad">بسته</span>';
+      else if (r.state === 'dns') badge = '<span class="badge dns">DNS</span>';
+      const ms = r.ms != null ? r.ms + 'ms' : '';
+      return '<div class="srv" data-host="' + esc(k) + '" data-ping="1">' +
+        '<div class="srv-info"><div class="srv-host">' + esc(s.hostname) + '</div>' +
+        (s.city ? '<div class="srv-city">' + esc(s.city) + '</div>' : '') + '</div>' +
+        badge + '<span class="ms">' + ms + '</span></div>';
+    }
+
+    function patchRow(id, k) {
+      if (id !== activeId) return;
+      const st = S(id);
+      const s = st.servers.find(x => keyOf(x) === k);
+      if (!s) return;
+      const row = mainEl.querySelector('.srv[data-host="' + cssEsc(k) + '"]');
+      if (row) row.outerHTML = rowHtml(id, s);
+      // به‌روزرسانی pill کشور
+      const g = st.groups.find(g => g.servers.includes(s));
+      if (g) {
+        const okCount = g.servers.filter(x => (st.results.get(keyOf(x)) || {}).state === 'ok').length;
+        const head = mainEl.querySelector('.country[data-code="' + cssEsc(g.code) + '"] .country-head');
+        if (head) {
+          let okPill = head.querySelector('.pill.ok');
+          if (okCount) {
+            if (!okPill) { okPill = document.createElement('span'); okPill.className = 'pill ok'; head.querySelector('.scan-c').before(okPill); }
+            okPill.textContent = '✓ ' + okCount;
+          } else if (okPill) okPill.remove();
+        }
+      }
+    }
+
+    function renderStats(id) {
+      const st = S(id);
+      const total = st.servers.length;
+      const countries = st.groups.length;
+      let ok = 0; for (const v of st.results.values()) if (v.state === 'ok') ok++;
+      statsEl.innerHTML =
+        '<span class="stat">🌍 <b>' + countries + '</b> کشور</span>' +
+        '<span class="stat">🖥 <b>' + total + '</b> سرور</span>' +
+        '<span class="stat ok">✓ <b class="ok">' + ok + '</b> باز</span>';
+    }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+    function cssEsc(s) { return String(s).replace(/["\\]/g, '\\$&'); }
+
+    // ---------- رویدادها ----------
+    mainEl.addEventListener('click', (e) => {
+      const scanBtn = e.target.closest('[data-scan]');
+      if (scanBtn) {
+        e.stopPropagation();
+        const code = scanBtn.getAttribute('data-scan');
+        const st = S(activeId);
+        if (!st.expanded.has(code)) { st.expanded.add(code); render(); }
+        const g = st.groups.find(g => g.code === code);
+        if (g) scanList(activeId, g.servers);
+        return;
+      }
+      const toggle = e.target.closest('[data-toggle]');
+      if (toggle) {
+        const code = toggle.getAttribute('data-toggle');
+        const st = S(activeId);
+        if (st.expanded.has(code)) st.expanded.delete(code); else st.expanded.add(code);
+        render();
+        return;
+      }
+      const row = e.target.closest('[data-ping]');
+      if (row) {
+        const k = row.getAttribute('data-host');
+        const st = S(activeId);
+        const s = st.servers.find(x => keyOf(x) === k);
+        if (s) pingOne(activeId, s);
+      }
+    });
+
+    let searchT;
+    searchEl.addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(render, 180); });
+
+    btnScan.addEventListener('click', () => {
+      const groups = visibleServers(activeId);
+      const list = groups.filter(g => S(activeId).expanded.has(g.code)).flatMap(g => g.servers);
+      const target = list.length ? list : groups.flatMap(g => g.servers).slice(0, 400);
+      scanList(activeId, target);
+    });
+
+    btnLive.addEventListener('click', async () => {
+      btnLive.disabled = true; btnLive.textContent = '↻ ...';
+      const ok = await fetchLive(activeId);
+      btnLive.disabled = false; btnLive.textContent = ok ? '✓ به‌روز شد' : '↻ آپدیت لیست';
+      if (ok) { searchEl.value = searchEl.value; render(); }
+      setTimeout(() => btnLive.textContent = '↻ آپدیت لیست', 1500);
+    });
+
+    // ---------- تب‌ها ----------
+    async function activate(id) {
+      activeId = id;
+      SCANNERS.forEach(s => document.getElementById('tab-' + s.id).classList.toggle('active', s.id === id));
+      const sc = SCANNERS.find(s => s.id === id);
+      if (sc) document.getElementById('tab-' + id).style.cssText = 'background:' + sc.color + ';color:#fff;border-color:transparent;';
+      SCANNERS.forEach(s => { if (s.id !== id) { const t = document.getElementById('tab-' + s.id); t.style.cssText = ''; } });
+      searchEl.value = '';
+      mainEl.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+      await loadList(id);
+      // علامت سبز روی تب وقتی لیست لود شد
+      document.getElementById('tab-' + id).classList.add('loaded');
+      render();
       location.hash = id;
     }
 
     SCANNERS.forEach(s => {
       const tab = document.createElement('button');
-      tab.className = 'tab';
-      tab.id = 'tab-' + s.id;
-      tab.innerHTML = s.name + '<span class="dot"></span>';
+      tab.className = 'tab'; tab.id = 'tab-' + s.id;
+      tab.innerHTML = (s.emoji ? s.emoji + ' ' : '') + s.name + '<span class="dot"></span>';
       tab.onclick = () => activate(s.id);
       tabsEl.appendChild(tab);
-
-      const frame = document.createElement('iframe');
-      frame.id = 'frame-' + s.id;
-      frame.title = s.name;
-      framesEl.appendChild(frame);
     });
 
-    // تب اولیه: از روی hash آدرس یا اولین اسکنر
     const initial = SCANNERS.find(s => s.id === location.hash.slice(1)) || SCANNERS[0];
     activate(initial.id);
   </script>

@@ -8,7 +8,7 @@ echo    VPN Scanner Suite
 echo ============================================
 echo.
 
-REM نصب وابستگی‌های اسکنرهای Express در صورت نبود
+REM نصب وابستگی‌های اسکنرها در صورت نبود
 if not exist "scanners\purevpn\node_modules" (
   echo نصب وابستگی‌های PureVPN...
   call npm --prefix scanners\purevpn install
@@ -16,6 +16,22 @@ if not exist "scanners\purevpn\node_modules" (
 if not exist "scanners\expressvpn\node_modules" (
   echo نصب وابستگی‌های ExpressVPN...
   call npm --prefix scanners\expressvpn install
+)
+if not exist "scanners\mullvad\node_modules" (
+  echo نصب وابستگی‌های Mullvad...
+  call npm --prefix scanners\mullvad install
+)
+if not exist "scanners\pia\node_modules" (
+  echo نصب وابستگی‌های PIA...
+  call npm --prefix scanners\pia install
+)
+if not exist "scanners\windscribe\node_modules" (
+  echo نصب وابستگی‌های Windscribe...
+  call npm --prefix scanners\windscribe install
+)
+if not exist "scanners\proton\node_modules" (
+  echo نصب وابستگی‌های Proton VPN...
+  call npm --prefix scanners\proton install
 )
 
 echo در حال راه‌اندازی... مرورگر به‌صورت خودکار باز می‌شود.

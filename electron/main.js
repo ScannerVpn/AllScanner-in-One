@@ -16,16 +16,29 @@ const { spawn } = require('child_process');
 const { getFreePort } = require('./port-utils');
 
 // تعریف اسکنرها — پورت‌ها در زمان اجرا به‌صورت داینامیک تخصیص می‌یابند.
+// emoji/color برای پوسته‌ی واحد (UI آکاردئون کشوری، مثل اپ اندروید) استفاده می‌شوند.
 const SCANNERS = [
-  { id: 'surfshark',  name: 'Surfshark',  dir: 'surfshark',  entry: 'surf_server.js' },
-  { id: 'nord',       name: 'NordVPN',    dir: 'nord',       entry: 'server.js'      },
-  { id: 'expressvpn', name: 'ExpressVPN', dir: 'expressvpn', entry: 'server.js'      },
-  { id: 'purevpn',    name: 'PureVPN',    dir: 'purevpn',    entry: 'server.js'      },
-  { id: 'mullvad',    name: 'Mullvad',    dir: 'mullvad',    entry: 'server.js'      },
-  { id: 'pia',        name: 'PIA',        dir: 'pia',        entry: 'server.js'      },
-  { id: 'windscribe', name: 'Windscribe', dir: 'windscribe', entry: 'server.js'      },
-  { id: 'proton',     name: 'Proton VPN', dir: 'proton',     entry: 'server.js'      },
+  { id: 'surfshark',  name: 'Surfshark',  dir: 'surfshark',  entry: 'surf_server.js', emoji: '🦈', color: '#1ebfbf' },
+  { id: 'nord',       name: 'NordVPN',    dir: 'nord',       entry: 'server.js',      emoji: '🛡️', color: '#4687ff' },
+  { id: 'expressvpn', name: 'ExpressVPN', dir: 'expressvpn', entry: 'server.js',      emoji: '🚀', color: '#da3940' },
+  { id: 'purevpn',    name: 'PureVPN',    dir: 'purevpn',    entry: 'server.js',      emoji: '💚', color: '#37b24d' },
+  { id: 'mullvad',    name: 'Mullvad',    dir: 'mullvad',    entry: 'server.js',      emoji: '🐭', color: '#f0a020' },
+  { id: 'pia',        name: 'PIA',        dir: 'pia',        entry: 'server.js',      emoji: '🔒', color: '#5b8c2a' },
+  { id: 'windscribe', name: 'Windscribe', dir: 'windscribe', entry: 'server.js',      emoji: '🌬️', color: '#3aa6ff' },
+  { id: 'proton',     name: 'Proton VPN', dir: 'proton',     entry: 'server.js',      emoji: '⚛️', color: '#8a6eff' },
 ];
+
+// لیست سرورهای باندل‌شده (Nord کامل ۸۰۰۰ + بقیه) — همان فایلی که اپ اندروید استفاده می‌کند.
+// در حالت پکیج‌شده داخل resources، در توسعه کنار پروژه.
+const DATA_FILE = app.isPackaged
+  ? path.join(process.resourcesPath, 'data', 'servers.json')
+  : path.join(__dirname, '..', 'data', 'servers.json');
+let BUNDLED_SERVERS = {};
+try {
+  BUNDLED_SERVERS = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+} catch (e) {
+  console.warn('⚠ لیست باندل‌شده‌ی سرورها یافت نشد:', DATA_FILE);
+}
 
 // مسیر ریشه‌ی اسکنرها: در حالت توسعه کنار پروژه، در حالت پکیج‌شده داخل resources.
 const SCANNERS_ROOT = app.isPackaged
@@ -93,9 +106,18 @@ function startShellServer() {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         const injected = shellHtml.replace(
           '/*__SCANNERS__*/',
-          JSON.stringify(SCANNERS.map(({ id, name, port }) => ({ id, name, port })))
+          JSON.stringify(SCANNERS.map(({ id, name, port, emoji, color }) => ({ id, name, port, emoji, color })))
         );
         res.end(injected);
+        return;
+      }
+      // لیست باندل‌شده‌ی هر ارائه‌دهنده (فوری و آفلاین) — پوسته اول این را می‌گیرد،
+      // سپس می‌تواند با /api/servers پورت زنده آپدیت کند.
+      if (req.url && req.url.startsWith('/api/list')) {
+        const id = new URL(req.url, 'http://x').searchParams.get('provider');
+        const servers = (id && BUNDLED_SERVERS[id]) || [];
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ servers, count: servers.length }));
         return;
       }
       res.writeHead(404);

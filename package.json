@@ -28,7 +28,8 @@
     "asar": true,
     "extraResources": [
       { "from": "scanners", "to": "scanners", "filter": ["**/*"] },
-      { "from": "vendor/node", "to": "node", "filter": ["**/*"] }
+      { "from": "vendor/node", "to": "node", "filter": ["**/*"] },
+      { "from": "data", "to": "data", "filter": ["**/*"] }
     ],
     "win": {
       "target": ["nsis"]

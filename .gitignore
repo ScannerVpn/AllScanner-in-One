@@ -17,3 +17,6 @@ dist/
 
 # bundled Node runtime (downloaded at setup; see README)
 vendor/node/
+
+# ignore local user profile junctions and temporary symlinks
+~
