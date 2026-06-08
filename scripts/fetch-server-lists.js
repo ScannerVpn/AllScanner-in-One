@@ -67,24 +67,18 @@ function flagOf(code) {
 async function fetchNord() {
   const url = 'https://api.nordvpn.com/v1/servers?limit=8000';
   const data = await getJson(url);
+  // لیست کامل Nord (بدون cap) — فقط بر اساس hostname یکتا و فقط onlineها.
   const seen = new Set();
-  // برای جلوگیری از حجیم‌شدن لیست، حداکثر چند سرور برای هر شهر نگه می‌داریم.
-  const perCity = new Map();
-  const MAX_PER_CITY = 6;
   const out = [];
   for (const s of data) {
     const host = s.hostname;
     if (!host || seen.has(host)) continue;
     if (s.status && s.status !== 'online') continue;
+    seen.add(host);
     const loc = (s.locations && s.locations[0]) || {};
     const country = loc.country || {};
     const code = (country.code || '').toUpperCase();
     const city = (country.city && country.city.name) || '';
-    const cityKey = code + '|' + city;
-    const n = perCity.get(cityKey) || 0;
-    if (n >= MAX_PER_CITY) continue;
-    perCity.set(cityKey, n + 1);
-    seen.add(host);
     out.push({
       hostname: host,
       country: country.name || code || 'Unknown',

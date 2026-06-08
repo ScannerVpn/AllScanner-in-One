@@ -31,6 +31,30 @@ export function getBundled(id: ProviderId): Server[] {
   return BUNDLED[id] || [];
 }
 
+export interface CountryGroup {
+  code: string;
+  country: string;
+  flag: string;
+  servers: Server[];
+}
+
+/** سرورها را بر اساس کشور گروه‌بندی می‌کند (مرتب‌شده بر اساس تعداد، نزولی). */
+export function groupByCountry(servers: Server[]): CountryGroup[] {
+  const map = new Map<string, CountryGroup>();
+  for (const s of servers) {
+    const key = s.code || s.country || 'XX';
+    let g = map.get(key);
+    if (!g) {
+      g = {code: s.code || 'XX', country: s.country || 'Unknown', flag: s.flag || '🌐', servers: []};
+      map.set(key, g);
+    }
+    g.servers.push(s);
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => b.servers.length - a.servers.length || a.country.localeCompare(b.country),
+  );
+}
+
 /**
  * تلاش برای گرفتن لیست تازه از بک‌اند. اگر موفق و بزرگ‌تر بود برمی‌گرداند،
  * وگرنه null تا از لیست باندل‌شده استفاده شود.

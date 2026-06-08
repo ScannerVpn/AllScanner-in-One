@@ -1,29 +1,25 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import {fetchLive, getBundled, pingHost, PingResult, PingState, Server} from '../api';
+  CountryGroup,
+  fetchLive,
+  getBundled,
+  groupByCountry,
+  pingHost,
+  PingResult,
+  Server,
+} from '../api';
 import {Provider, THEME} from '../providers';
 import ServerCard from '../components/ServerCard';
+import CountryRow from '../components/CountryRow';
 
 interface Props {
   provider: Provider;
 }
 
-type FilterMode = 'all' | 'ok' | 'dpi' | 'bad' | 'unscanned';
-
-const FILTERS: {key: FilterMode; label: string}[] = [
-  {key: 'all', label: 'همه'},
-  {key: 'ok', label: '✓ باز'},
-  {key: 'dpi', label: '⚠ DPI'},
-  {key: 'bad', label: '✕ بسته'},
-  {key: 'unscanned', label: 'اسکن‌نشده'},
-];
+type Row =
+  | {type: 'country'; group: CountryGroup}
+  | {type: 'server'; server: Server};
 
 const CONCURRENCY = 8;
 
@@ -31,19 +27,18 @@ function ScannerScreen({provider}: Props): React.JSX.Element {
   const [servers, setServers] = useState<Server[]>(() => getBundled(provider.id));
   const [results, setResults] = useState<Record<string, PingResult>>({});
   const [pinging, setPinging] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<FilterMode>('all');
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState('');
   const stopRef = useRef(false);
 
-  // هنگام تغییر ارائه‌دهنده: لیست باندل‌شده فوری؛ سپس تلاش برای آپدیت لایو.
   useEffect(() => {
     setServers(getBundled(provider.id));
     setResults({});
     setPinging({});
+    setExpanded(new Set());
     setQuery('');
-    setFilter('all');
     let alive = true;
     fetchLive(provider).then(live => {
       if (alive && live && live.length > getBundled(provider.id).length) {
@@ -56,40 +51,67 @@ function ScannerScreen({provider}: Props): React.JSX.Element {
     };
   }, [provider]);
 
-  const filtered = useMemo(() => {
+  // گروه‌بندی کشوری + فیلتر سرچ (روی نام کشور/کد).
+  const groups = useMemo(() => {
+    const all = groupByCountry(servers);
     const q = query.trim().toLowerCase();
-    return servers.filter(s => {
-      if (q) {
-        const hay = (s.country + ' ' + s.city + ' ' + s.code).toLowerCase();
-        if (!hay.includes(q)) {
-          return false;
+    if (!q) {
+      return all;
+    }
+    return all.filter(
+      g =>
+        g.country.toLowerCase().includes(q) || g.code.toLowerCase().includes(q),
+    );
+  }, [servers, query]);
+
+  // ساخت آرایه‌ی تخت برای FlatList: هدر کشور + (در صورت باز بودن) سرورهایش.
+  const rows = useMemo<Row[]>(() => {
+    const out: Row[] = [];
+    for (const g of groups) {
+      out.push({type: 'country', group: g});
+      if (expanded.has(g.code)) {
+        for (const s of g.servers) {
+          out.push({type: 'server', server: s});
         }
       }
-      if (filter === 'all') {
-        return true;
-      }
-      const st = results[s.hostname]?.state;
-      if (filter === 'unscanned') {
-        return !st;
-      }
-      return st === filter;
-    });
-  }, [servers, query, filter, results]);
+    }
+    return out;
+  }, [groups, expanded]);
 
   const stats = useMemo(() => {
     const vals = Object.values(results);
     return {
       total: servers.length,
       ok: vals.filter(v => v.state === 'ok').length,
-      dpi: vals.filter(v => v.state === 'dpi').length,
-      bad: vals.filter(v => v.state === 'bad').length,
+      countries: groups.length,
     };
+  }, [servers, results, groups]);
+
+  const okPerCountry = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const s of servers) {
+      if (results[s.hostname]?.state === 'ok') {
+        m[s.code] = (m[s.code] || 0) + 1;
+      }
+    }
+    return m;
   }, [servers, results]);
+
+  const toggle = useCallback((code: string) => {
+    setExpanded(prev => {
+      const n = new Set(prev);
+      if (n.has(code)) {
+        n.delete(code);
+      } else {
+        n.add(code);
+      }
+      return n;
+    });
+  }, []);
 
   const pingOne = useCallback(
     async (s: Server) => {
       setPinging(p => ({...p, [s.hostname]: true}));
-      // برای nord از station IP استفاده می‌کنیم اگر موجود بود.
       const target = s.ip || s.hostname;
       const r = await pingHost(provider.port, target);
       setResults(prev => ({...prev, [s.hostname]: r}));
@@ -103,102 +125,111 @@ function ScannerScreen({provider}: Props): React.JSX.Element {
     [provider.port],
   );
 
-  const scanAll = useCallback(async () => {
-    if (scanning) {
-      stopRef.current = true;
-      return;
-    }
-    stopRef.current = false;
-    setScanning(true);
-    const queue = [...filtered];
-    const total = queue.length;
-    let done = 0;
-    const worker = async () => {
-      while (queue.length && !stopRef.current) {
-        const s = queue.shift()!;
-        try {
-          await pingOne(s);
-        } catch {}
-        done += 1;
-        setProgress(`${done}/${total}`);
+  const scanList = useCallback(
+    async (list: Server[]) => {
+      if (scanning) {
+        stopRef.current = true;
+        return;
       }
-    };
-    await Promise.all(
-      Array.from({length: Math.min(CONCURRENCY, total)}, worker),
-    );
-    setScanning(false);
-    setProgress('');
-  }, [scanning, filtered, pingOne]);
+      stopRef.current = false;
+      setScanning(true);
+      const queue = [...list];
+      const total = queue.length;
+      let done = 0;
+      const worker = async () => {
+        while (queue.length && !stopRef.current) {
+          const s = queue.shift()!;
+          try {
+            await pingOne(s);
+          } catch {}
+          done += 1;
+          setProgress(`${done}/${total}`);
+        }
+      };
+      await Promise.all(Array.from({length: Math.min(CONCURRENCY, total)}, worker));
+      setScanning(false);
+      setProgress('');
+    },
+    [scanning, pingOne],
+  );
+
+  // اسکن یک کشور: اگر بسته بود بازش کن، بعد همه‌ی سرورهایش را اسکن کن.
+  const scanCountry = useCallback(
+    (g: CountryGroup) => {
+      setExpanded(prev => new Set(prev).add(g.code));
+      scanList(g.servers);
+    },
+    [scanList],
+  );
+
+  const scanAllVisible = useCallback(() => {
+    const list = groups.flatMap(g => g.servers);
+    scanList(list);
+  }, [groups, scanList]);
 
   const renderItem = useCallback(
-    ({item}: {item: Server}) => (
-      <ServerCard
-        server={item}
-        result={results[item.hostname]}
-        pinging={!!pinging[item.hostname]}
-        onPress={() => pingOne(item)}
-      />
-    ),
-    [results, pinging, pingOne],
+    ({item}: {item: Row}) => {
+      if (item.type === 'country') {
+        return (
+          <CountryRow
+            group={item.group}
+            expanded={expanded.has(item.group.code)}
+            okCount={okPerCountry[item.group.code] || 0}
+            onToggle={() => toggle(item.group.code)}
+            onScan={() => scanCountry(item.group)}
+          />
+        );
+      }
+      return (
+        <ServerCard
+          server={item.server}
+          result={results[item.server.hostname]}
+          pinging={!!pinging[item.server.hostname]}
+          onPress={() => pingOne(item.server)}
+        />
+      );
+    },
+    [expanded, okPerCountry, results, pinging, toggle, scanCountry, pingOne],
+  );
+
+  const keyExtractor = useCallback(
+    (item: Row) =>
+      item.type === 'country' ? 'c:' + item.group.code : 's:' + item.server.hostname,
+    [],
   );
 
   return (
     <View style={styles.root}>
-      {/* آمار */}
       <View style={styles.stats}>
-        <Stat label="کل" value={stats.total} color={THEME.text} />
+        <Stat label="کشورها" value={stats.countries} color={THEME.text} />
+        <Stat label="کل سرور" value={stats.total} color={THEME.text} />
         <Stat label="✓ باز" value={stats.ok} color={THEME.green} />
-        <Stat label="⚠ DPI" value={stats.dpi} color={THEME.yellow} />
-        <Stat label="✕ بسته" value={stats.bad} color={THEME.red} />
       </View>
 
-      {/* سرچ */}
       <TextInput
         style={styles.search}
-        placeholder="🔍 فیلتر بر اساس کشور / شهر…"
+        placeholder="🔍 جستجوی کشور…"
         placeholderTextColor={THEME.muted}
         value={query}
         onChangeText={setQuery}
       />
 
-      {/* چیپ‌های فیلتر */}
-      <View style={styles.chips}>
-        {FILTERS.map(f => (
-          <TouchableOpacity
-            key={f.key}
-            onPress={() => setFilter(f.key)}
-            style={[styles.chip, filter === f.key && styles.chipActive]}>
-            <Text
-              style={[
-                styles.chipText,
-                filter === f.key && styles.chipTextActive,
-              ]}>
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* لیست */}
       <FlatList
-        data={filtered}
-        keyExtractor={s => s.hostname}
+        data={rows}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
-        initialNumToRender={12}
-        maxToRenderPerBatch={12}
-        windowSize={9}
+        initialNumToRender={15}
+        maxToRenderPerBatch={15}
+        windowSize={10}
         removeClippedSubviews
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={
-          <Text style={styles.empty}>سروری برای نمایش نیست</Text>
-        }
+        ListEmptyComponent={<Text style={styles.empty}>کشوری پیدا نشد</Text>}
       />
 
-      {/* دکمه‌ی شناور اسکن همه */}
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={scanAll}
+        onPress={scanAllVisible}
         style={[styles.scanBtn, scanning && styles.scanBtnStop]}>
         <Text style={styles.scanBtnText}>
           {scanning ? `⛔ توقف  ${progress}` : '📡 اسکن همه'}
@@ -208,15 +239,7 @@ function ScannerScreen({provider}: Props): React.JSX.Element {
   );
 }
 
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
+function Stat({label, value, color}: {label: string; value: number; color: string}) {
   return (
     <View style={styles.stat}>
       <Text style={styles.statLabel}>{label}</Text>
@@ -227,12 +250,7 @@ function Stat({
 
 const styles = StyleSheet.create({
   root: {flex: 1, backgroundColor: THEME.bg},
-  stats: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-  },
+  stats: {flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 10},
   stat: {
     flex: 1,
     backgroundColor: THEME.surface,
@@ -257,26 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'right',
   },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    backgroundColor: THEME.surface,
-  },
-  chipActive: {backgroundColor: THEME.accent, borderColor: THEME.accent},
-  chipText: {color: THEME.muted, fontSize: 12},
-  chipTextActive: {color: '#fff', fontWeight: '700'},
-  listContent: {paddingTop: 8, paddingBottom: 90},
+  listContent: {paddingTop: 10, paddingBottom: 90},
   empty: {color: THEME.muted, textAlign: 'center', marginTop: 40, fontSize: 13},
   scanBtn: {
     position: 'absolute',
@@ -287,10 +286,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    shadowOffset: {width: 0, height: 4},
     elevation: 6,
   },
   scanBtnStop: {backgroundColor: '#b3261e'},

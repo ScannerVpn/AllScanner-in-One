@@ -2,17 +2,24 @@
 /**
  * VPN Scanner Suite — لانچرِ تک‌پروسه برای اندروید (nodejs-mobile).
  *
- * برخلاف دسکتاپ که هر اسکنر یک پروسه‌ی جدا بود، در nodejs-mobile فقط یک
- * پروسه‌ی Node داریم. پس هر ۸ اسکنر را در همین پروسه require می‌کنیم؛ هر
- * کدام روی پورت پیش‌فرض خودش روی 127.0.0.1 بالا می‌آید. سپس یک سرور پوسته
- * روی SHELL_PORT صفحه‌ی shell.html را با تزریق لیست اسکنرها سرو می‌کند و
- * شماره‌اش را از کانال rn-bridge به React Native می‌فرستد.
+ * مهم (باگی که با تست روی امولاتور پیدا شد): اسکنرهای express (نسخه ۵) موقع
+ * تعریف route از `path-to-regexp` با Unicode property escape `\p{ID_Start}`
+ * استفاده می‌کنند که Nodeِ داخل nodejs-mobile (با small-icu) آن را ندارد و
+ * کل require آن اسکنر می‌ترکد. برای همین آن ۶ اسکنر روی گوشی بالا نمی‌آمدند و
+ * پینگشان «بسته» می‌شد.
  *
- * مهم: این پروسه Node واقعی با OpenSSL است (نه BoringSSL)، پس اثرانگشت TLS
- * مثل حالت وب/دسکتاپ است و پشت DPI سرورهای سالم را درست تشخیص می‌دهد.
+ * راه‌حل: express را اصلاً بار نمی‌کنیم. رابط نیتیو لیست سرورها را از JSON
+ * باندل‌شده می‌خواند و فقط به «پینگ» نیاز دارد. پس برای هر اسکنر express یک
+ * سرور raw-http سبک می‌سازیم که تنها همان `src/services/probe.js` خودش را
+ * require می‌کند و `/api/ping?host=` را سرو می‌کند. کد probe دست‌نمی‌خورد.
+ *
+ * Surfshark و Nord از قبل raw-http بودند (express ندارند) و سالم بالا می‌آیند،
+ * پس همان server.js خودشان را require می‌کنیم.
+ *
+ * این پروسه Node واقعی با OpenSSL است (نه BoringSSL)، پس اثرانگشت TLS مثل
+ * دسکتاپ است و پشت DPI سرورهای سالم را درست تشخیص می‌دهد.
  */
 const http = require('http');
-const fs = require('fs');
 const path = require('path');
 
 let bridge = null;
@@ -22,66 +29,85 @@ function log(msg) {
   try { bridge && bridge.channel.send(String(msg)); } catch { /* ignore */ }
 }
 
-// --- شیم process.exit: اسکنرهای express هنگام خطای استارت process.exit(1)
-// می‌زنند که در حالت تک‌پروسه کل Node را می‌کشد. اینجا آن را بی‌اثر می‌کنیم
-// تا خطای یک اسکنر بقیه را از پا درنیاورد. (کد اسکنرها دست‌نمی‌خورد.)
-const realExit = process.exit.bind(process);
-process.exit = (code) => { console.log('⛔ نادیده‌گرفتن process.exit(' + code + ') در حالت تک‌پروسه'); };
+// اسکنرهای express هنگام خطا process.exit می‌زنند؛ بی‌اثرش می‌کنیم.
+process.exit = (code) => { console.log('⛔ ignore process.exit(' + code + ')'); };
 process.on('uncaughtException', e => console.log('uncaught:', e && e.message));
 process.on('unhandledRejection', e => console.log('unhandledRejection:', e && (e.message || e)));
 
-const SHELL_PORT = 8080;
-
-// لیست اسکنرها — پورت‌ها همان پیش‌فرض هر اسکنر (داخل کدشان) می‌مانند چون
-// PORT را ست نمی‌کنیم؛ فقط برای shell.html باید بدانیم کدام پورت کجاست.
-const SCANNERS = [
-  { id: 'surfshark',  name: 'Surfshark',  dir: 'surfshark',  entry: 'surf_server.js', port: 3002 },
-  { id: 'nord',       name: 'NordVPN',    dir: 'nord',       entry: 'server.js',      port: 3000 },
-  { id: 'expressvpn', name: 'ExpressVPN', dir: 'expressvpn', entry: 'server.js',      port: 3003 },
-  { id: 'purevpn',    name: 'PureVPN',    dir: 'purevpn',    entry: 'server.js',      port: 3004 },
-  { id: 'mullvad',    name: 'Mullvad',    dir: 'mullvad',    entry: 'server.js',      port: 3005 },
-  { id: 'pia',        name: 'PIA',        dir: 'pia',        entry: 'server.js',      port: 3006 },
-  { id: 'windscribe', name: 'Windscribe', dir: 'windscribe', entry: 'server.js',      port: 3007 },
-  { id: 'proton',     name: 'Proton VPN', dir: 'proton',     entry: 'server.js',      port: 3008 },
-];
-
 const SCANNERS_ROOT = path.join(__dirname, 'scanners');
 
-// هر اسکنر را در همین پروسه require می‌کنیم. هر فایل serverِ خودش روی
-// require اجرا می‌شود و listen می‌کند. require در try جدا تا خطای یکی
-// مانع بقیه نشود.
-function loadScanner(s) {
-  const entryAbs = path.join(SCANNERS_ROOT, s.dir, s.entry);
+// اسکنرهای raw-http که سالم بالا می‌آیند → کل server.js خودشان را require می‌کنیم.
+const RAW_SCANNERS = [
+  { id: 'surfshark', name: 'Surfshark', dir: 'surfshark', entry: 'surf_server.js', port: 3002 },
+  { id: 'nord',      name: 'NordVPN',   dir: 'nord',      entry: 'server.js',      port: 3000 },
+];
+
+// اسکنرهای express → فقط probe را برمی‌داریم و یک سرور پینگ سبک می‌سازیم.
+const PING_SCANNERS = [
+  { id: 'expressvpn', name: 'ExpressVPN', dir: 'expressvpn', port: 3003 },
+  { id: 'purevpn',    name: 'PureVPN',    dir: 'purevpn',    port: 3004 },
+  { id: 'mullvad',    name: 'Mullvad',    dir: 'mullvad',    port: 3005 },
+  { id: 'pia',        name: 'PIA',        dir: 'pia',        port: 3006 },
+  { id: 'windscribe', name: 'Windscribe', dir: 'windscribe', port: 3007 },
+  { id: 'proton',     name: 'Proton VPN', dir: 'proton',     port: 3008 },
+];
+
+function loadRawScanner(s) {
   try {
-    require(entryAbs);
-    log('▶ ' + s.name + ' لود شد (پورت ' + s.port + ')');
+    require(path.join(SCANNERS_ROOT, s.dir, s.entry));
+    log('▶ ' + s.name + ' (raw) پورت ' + s.port);
   } catch (e) {
     log('✗ ' + s.name + ' خطا: ' + (e && e.message));
   }
 }
 
-function startShell() {
-  let shellHtml = fs.readFileSync(path.join(__dirname, 'shell.html'), 'utf8');
-  const server = http.createServer((req, res) => {
-    if (req.url === '/' || req.url === '/index.html') {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      const injected = shellHtml.replace(
-        '/*__SCANNERS__*/',
-        JSON.stringify(SCANNERS.map(({ id, name, port }) => ({ id, name, port })))
-      );
-      res.end(injected);
-      return;
-    }
-    res.writeHead(404); res.end('Not found');
+function sendJSON(res, status, obj) {
+  const body = JSON.stringify(obj);
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
   });
-  server.listen(SHELL_PORT, '127.0.0.1', () => {
-    log('✅ پوسته آماده است → http://localhost:' + SHELL_PORT + '/');
-    // به React Native اطلاع بده که UI آماده‌ی بارگذاری است.
-    try { bridge && bridge.channel.post('shell-ready', { port: SHELL_PORT }); } catch { /* ignore */ }
-  });
+  res.end(body);
 }
 
-log('🚀 در حال راه‌اندازی اسکنرها (تک‌پروسه)...');
-SCANNERS.forEach(loadScanner);
-// کمی صبر تا listenها مستقر شوند، سپس پوسته.
-setTimeout(startShell, 800);
+function startPingScanner(s) {
+  let bestPing;
+  try {
+    ({ bestPing } = require(path.join(SCANNERS_ROOT, s.dir, 'src', 'services', 'probe.js')));
+  } catch (e) {
+    log('✗ ' + s.name + ' probe خطا: ' + (e && e.message));
+    return;
+  }
+  const server = http.createServer((req, res) => {
+    if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
+    let pathname = '', query = {};
+    try {
+      const u = new URL(req.url, `http://${req.headers.host}`);
+      pathname = u.pathname;
+      query = Object.fromEntries(u.searchParams);
+    } catch { pathname = (req.url || '').split('?')[0]; }
+
+    if (pathname === '/api/ping') {
+      const host = query.host;
+      if (!host) return sendJSON(res, 400, { error: 'Missing host' });
+      bestPing(host)
+        .then(d => sendJSON(res, 200, { host, ...d }))
+        .catch(() => sendJSON(res, 200, { host, ms: null, method: null, vpnAccessible: false }));
+      return;
+    }
+    if (pathname === '/api/health') return sendJSON(res, 200, { ok: true });
+    res.writeHead(404); res.end('Not found');
+  });
+  server.on('error', e => log('✗ ' + s.name + ' listen خطا: ' + (e && e.message)));
+  server.listen(s.port, '127.0.0.1', () => log('▶ ' + s.name + ' (ping) پورت ' + s.port));
+}
+
+log('🚀 راه‌اندازی موتور اسکن...');
+RAW_SCANNERS.forEach(loadRawScanner);
+PING_SCANNERS.forEach(startPingScanner);
+
+// به React Native اطلاع بده که موتور آماده است.
+setTimeout(() => {
+  log('✅ موتور آماده است');
+  try { bridge && bridge.channel.post('shell-ready', { ready: true }); } catch { /* ignore */ }
+}, 600);
