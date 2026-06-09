@@ -8,36 +8,44 @@ echo    VPN Scanner Suite
 echo ============================================
 echo.
 
-REM نصب وابستگی‌های اسکنرها در صورت نبود
-if not exist "scanners\purevpn\node_modules" (
-  echo نصب وابستگی‌های PureVPN...
-  call npm --prefix scanners\purevpn install
-)
-if not exist "scanners\expressvpn\node_modules" (
-  echo نصب وابستگی‌های ExpressVPN...
-  call npm --prefix scanners\expressvpn install
-)
-if not exist "scanners\mullvad\node_modules" (
-  echo نصب وابستگی‌های Mullvad...
-  call npm --prefix scanners\mullvad install
-)
-if not exist "scanners\pia\node_modules" (
-  echo نصب وابستگی‌های PIA...
-  call npm --prefix scanners\pia install
-)
-if not exist "scanners\windscribe\node_modules" (
-  echo نصب وابستگی‌های Windscribe...
-  call npm --prefix scanners\windscribe install
-)
-if not exist "scanners\proton\node_modules" (
-  echo نصب وابستگی‌های Proton VPN...
-  call npm --prefix scanners\proton install
+REM بررسی نصب بودن Node.js
+where node >nul 2>nul
+if errorlevel 1 (
+  echo [خطا] Node.js نصب نیست.
+  echo لطفا از https://nodejs.org نصب کن و دوباره این فایل را اجرا کن.
+  echo.
+  pause
+  exit /b 1
 )
 
+REM نصب وابستگی‌های ریشه (postinstall وابستگی‌های همه‌ی اسکنرها را هم نصب می‌کند)
+if not exist "node_modules" (
+  echo نصب وابستگی‌ها برای اولین بار... ممکن است چند دقیقه طول بکشد.
+  echo.
+  call npm install
+  if errorlevel 1 (
+    echo.
+    echo [خطا] نصب وابستگی‌ها ناموفق بود. لطفا اتصال اینترنت را بررسی کن.
+    echo.
+    pause
+    exit /b 1
+  )
+)
+
+REM در صورت نبود node_modules در هر اسکنر، نصبش کن
+for %%S in (purevpn expressvpn mullvad pia windscribe proton nord surfshark) do (
+  if not exist "scanners\%%S\node_modules" (
+    echo نصب وابستگی‌های %%S...
+    call npm --prefix "scanners\%%S" install
+  )
+)
+
+echo.
 echo در حال راه‌اندازی... مرورگر به‌صورت خودکار باز می‌شود.
 echo برای بستن، این پنجره را ببندید یا Ctrl+C بزنید.
 echo.
 
 node suite.js
 
+echo.
 pause
