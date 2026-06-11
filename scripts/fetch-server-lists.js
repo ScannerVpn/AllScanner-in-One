@@ -1,8 +1,10 @@
 'use strict';
 /**
  * لیست کامل سرورهای هر ۸ ارائه‌دهنده را (با اینترنت آزاد) جمع می‌کند و در
- * android-app/src/data/servers.json با شکل یکسان می‌نویسد تا اپ اندروید آن را
- * باندل کند و حتی پشت فیلترینگ (که فچِ لایو شکست می‌خورد) لیست کامل داشته باشد.
+ * data/servers.json با شکل یکسان می‌نویسد. این همان فایلی است که suite.js
+ * باندل می‌کند تا حتی پشت فیلترینگ (که فچِ لایو شکست می‌خورد) لیست کامل
+ * داشته باشد. اگر گرفتنِ یک ارائه‌دهنده شکست بخورد، لیست قبلیِ همان
+ * ارائه‌دهنده حفظ می‌شود (فایل خالی نمی‌شود).
  *
  * روش: همان سرورهای اسکنر را بالا می‌آورد و از /api/servers خودشان می‌خواند تا
  * دقیقاً از نرمال‌سازیِ خودِ هر اسکنر استفاده شود. Nord جداگانه از API عمومی‌اش
@@ -17,7 +19,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const OUT = path.join(ROOT, 'android-app', 'src', 'data', 'servers.json');
+const OUT = path.join(ROOT, 'data', 'servers.json');
 
 // همان پورت‌های پیش‌فرض اسکنرها
 const SCANNERS = [
@@ -117,21 +119,35 @@ async function main() {
   console.log('🚀 بالا آوردن اسکنرها برای استخراج لیست...');
   SCANNERS.forEach(startScanner);
 
+  // لیست قبلی را بخوان تا اگر گرفتنِ یک ارائه‌دهنده شکست خورد، قبلی حفظ شود
+  let prev = {};
+  try { prev = JSON.parse(fs.readFileSync(OUT, 'utf8')); } catch { /* فایل قبلی نیست */ }
+
   const result = {};
   for (const s of SCANNERS) {
     process.stdout.write(`  • ${s.id} ... `);
     const list = await fetchFromScanner(s);
-    result[s.id] = list;
-    console.log(list.length + ' سرور');
+    if (list.length > 5) {
+      result[s.id] = list;
+      console.log(list.length + ' سرور');
+    } else if (prev[s.id] && prev[s.id].length) {
+      result[s.id] = prev[s.id];
+      console.log(`خطا در فچ — لیست قبلی حفظ شد (${prev[s.id].length} سرور)`);
+    } else {
+      result[s.id] = list;
+      console.log(list.length + ' سرور');
+    }
   }
 
   process.stdout.write('  • nord ... ');
   try {
-    result.nord = await fetchNord();
-    console.log(result.nord.length + ' سرور');
+    const nord = await fetchNord();
+    if (nord.length > 5) { result.nord = nord; console.log(nord.length + ' سرور'); }
+    else if (prev.nord && prev.nord.length) { result.nord = prev.nord; console.log(`خطا — لیست قبلی حفظ شد (${prev.nord.length})`); }
+    else { result.nord = nord; console.log(nord.length + ' سرور'); }
   } catch (e) {
-    result.nord = [];
-    console.log('خطا: ' + e.message);
+    result.nord = (prev.nord && prev.nord.length) ? prev.nord : [];
+    console.log('خطا: ' + e.message + (result.nord.length ? ` — لیست قبلی حفظ شد (${result.nord.length})` : ''));
   }
 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });

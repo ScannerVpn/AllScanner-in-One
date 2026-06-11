@@ -21,3 +21,6 @@ vendor/node/
 
 # ignore local user profile junctions and temporary symlinks
 ~
+
+# Proton account token (never commit credentials)
+scanners/proton/proton-auth.json

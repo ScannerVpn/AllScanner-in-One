@@ -175,6 +175,7 @@
     <div class="stats" id="stats"></div>
     <button class="btn" id="btn-live" title="آپدیت لیست از سرور">↻ آپدیت لیست</button>
     <button class="btn primary" id="btn-scan">📡 اسکن همه</button>
+    <button class="btn" id="btn-stop" style="display:none">⏹ توقف</button>
   </div>
   <div class="progress-bar"><i id="progress"></i></div>
 
@@ -192,6 +193,7 @@
     const searchEl = document.getElementById('search');
     const progressEl = document.getElementById('progress');
     const btnScan  = document.getElementById('btn-scan');
+    const btnStop  = document.getElementById('btn-stop');
     const btnLive  = document.getElementById('btn-live');
 
     const CONCURRENCY = 8;
@@ -200,6 +202,7 @@
     const state = {}; // id -> { servers, groups, results: Map<hostKey,{state,ms}>, expanded:Set, loaded }
     let activeId = SCANNERS[0]?.id;
     let scanning = false;
+    let stopRequested = false;
 
     function S(id) { return state[id] || (state[id] = { servers: [], groups: [], results: new Map(), expanded: new Set(), loaded: false }); }
     function keyOf(s) { return s.ip || s.hostname; }
@@ -275,8 +278,13 @@
       patchRow(id, k);
       let res = { state: 'bad', ms: null };
       try {
-        const host = s.ip || s.hostname;
-        const r = await fetch('http://localhost:' + sc.port + '/api/ping?host=' + encodeURIComponent(host));
+        // همیشه hostname واقعی را می‌فرستیم (برای SNI درستِ TLS و نگاشتِ IP
+        // در خودِ اسکنر). IP معلوم را جدا با ip= می‌فرستیم تا اسکنرهایی که
+        // پشتیبانی می‌کنند (مثل proton) بتوانند DNSِ poison‌شده را دور بزنند.
+        const host = s.hostname || s.ip;
+        let url = 'http://localhost:' + sc.port + '/api/ping?host=' + encodeURIComponent(host);
+        if (s.ip) url += '&ip=' + encodeURIComponent(s.ip);
+        const r = await fetch(url);
         const j = await r.json();
         if (j.vpnAccessible) res = { state: 'ok', ms: j.ms ?? null };
         else if (j.ms != null) res = { state: 'dpi', ms: j.ms };
@@ -290,12 +298,14 @@
 
     async function scanList(id, list) {
       if (scanning) return;
-      scanning = true; btnScan.disabled = true;
+      scanning = true; stopRequested = false;
+      btnScan.style.display = 'none'; btnStop.style.display = '';
       let done = 0; const total = list.length;
       progressEl.style.width = '0%';
       let i = 0;
       async function worker() {
         while (i < list.length) {
+          if (stopRequested) break;
           const s = list[i++];
           await pingOne(id, s);
           done++;
@@ -304,7 +314,8 @@
         }
       }
       await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
-      scanning = false; btnScan.disabled = false;
+      scanning = false;
+      btnScan.style.display = ''; btnStop.style.display = 'none';
       setTimeout(() => progressEl.style.width = '0%', 600);
     }
 
@@ -434,6 +445,12 @@
       const list = groups.filter(g => S(activeId).expanded.has(g.code)).flatMap(g => g.servers);
       const target = list.length ? list : groups.flatMap(g => g.servers).slice(0, 400);
       scanList(activeId, target);
+    });
+
+    btnStop.addEventListener('click', () => {
+      stopRequested = true;
+      btnStop.textContent = '⏹ در حال توقف…';
+      setTimeout(() => btnStop.textContent = '⏹ توقف', 1200);
     });
 
     btnLive.addEventListener('click', async () => {

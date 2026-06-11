@@ -35,13 +35,22 @@ router.get('/export', async (req, res) => {
   }
 });
 
-// probe یک سرور: /api/ping?host=germany-frankfurt-1-ca-version-2.expressnetw.com
+// probe یک سرور: /api/ping?host=node-nl-01.protonvpn.net
+// اگر IP سرور در لیست کشف‌شده موجود باشد، همان را استفاده می‌کنیم تا DNS
+// (که پشت فیلترینگ poison می‌شود) دور زده شود. می‌توان با ?ip= هم داد.
 router.get('/ping', async (req, res) => {
   const hostname = req.query.host;
   if (!hostname) return res.status(400).json({ error: 'Missing host' });
 
+  // IP معلوم: از کوئری یا از لیست سرورهای بارگذاری‌شده
+  let knownIP = req.query.ip;
+  if (!knownIP) {
+    const match = getServers().find(s => s.hostname === hostname);
+    if (match && match.ip) knownIP = match.ip;
+  }
+
   try {
-    const result = await bestPing(hostname);
+    const result = await bestPing(hostname, knownIP);
     res.json({ host: hostname, ...result });
   } catch {
     res.json({ host: hostname, ms: null, method: null, vpnAccessible: false });

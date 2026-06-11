@@ -137,10 +137,13 @@ function icmpPing(target, timeoutMs = 2000) {
 }
 
 // استراتژی اصلی: DoH → TLS+TCP موازی → ICMP fallback
-async function bestPing(hostname) {
-  const realIP = await resolveDoH(hostname);
+// knownIP: اگر IP سرور از قبل معلوم باشد (از لیست کشف‌شده)، DNS را دور می‌زنیم.
+// این پشت فیلترینگ حیاتی است چون DNS برای protonvpn.net poison می‌شود و
+// در نتیجه همه‌ی سرورها اشتباهاً «بسته» نشان داده می‌شوند.
+async function bestPing(hostname, knownIP) {
+  const realIP = (knownIP && /^\d+\.\d+\.\d+\.\d+$/.test(knownIP)) ? knownIP : await resolveDoH(hostname);
 
-  if (!realIP) return { ms: null, method: null, vpnAccessible: false, ip: null };
+  if (!realIP) return { ms: null, method: 'dns-fail', vpnAccessible: false, ip: null };
 
   const [tls443, tcp443] = await Promise.all([
     tlsProbe(realIP, 443, hostname, 4000),

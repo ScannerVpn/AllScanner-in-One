@@ -1,0 +1,14 @@
+{
+  "_help": "لیست کامل و دقیق سرورهای اکانت خودت (مثل DE#804). این فایل را به proton-auth.json تغییر نام بده و مقادیر زیر را پر کن.",
+  "_how": [
+    "۱) برو به https://account.proton.me و لاگین کن",
+    "۲) F12 بزن و تب Network را باز کن",
+    "۳) صفحه را رفرش کن و در فیلتر بنویس: logicals",
+    "۴) روی درخواست logicals کلیک کن، در قسمت Request Headers این دو مقدار را کپی کن:",
+    "    - authorization: Bearer xxxxx   ->  مقدار token (بدون 'Bearer ')",
+    "    - x-pm-uid: xxxxx               ->  مقدار uid"
+  ],
+  "token": "اینجا مقدار بعد از Bearer را بگذار",
+  "uid": "اینجا مقدار x-pm-uid را بگذار",
+  "appVersion": "linux-vpn@4.14.1"
+}

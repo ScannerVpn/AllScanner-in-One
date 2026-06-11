@@ -99,7 +99,7 @@
 
   <div class="toolbar">
     <button id="scanBtn" class="btn btn-primary">📡 اسکن همه</button>
-    <input id="filter" placeholder="🔍 فیلتر بر اساس کشور / شهر…" />
+    <input id="filter" placeholder="🔍 فیلتر بر اساس سرور / کشور / شهر…" />
     <span id="status" class="progress"></span>
     <span style="flex:1"></span>
     <button class="chip active" data-f="all">همه</button>
@@ -112,7 +112,7 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>#</th><th>کشور</th><th>شهر</th><th>وضعیت</th><th>روش</th><th>پینگ</th></tr>
+        <tr><th>#</th><th>سرور</th><th>کشور</th><th>شهر</th><th>پلن</th><th>وضعیت</th><th>روش</th><th>پینگ</th></tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
@@ -149,7 +149,9 @@
 
     function textMatch(s, q) {
       if (!q) return true;
-      return (s.country || '').toLowerCase().includes(q) || (s.city || '').toLowerCase().includes(q);
+      return (s.name || '').toLowerCase().includes(q) ||
+             (s.country || '').toLowerCase().includes(q) ||
+             (s.city || '').toLowerCase().includes(q);
     }
     function stateMatch(host) {
       if (filterMode === 'all') return true;
@@ -185,8 +187,10 @@
           const tr = document.createElement('tr');
           tr.innerHTML =
             '<td class="muted">' + (i + 1) + '</td>' +
+            '<td><span class="pill">' + (s.name || s.hostname) + '</span></td>' +
             '<td>' + (s.code || '') + ' · ' + (s.country || '') + '</td>' +
             '<td class="muted">' + (s.city || '') + '</td>' +
+            '<td class="muted">' + (s.protocol || '') + (s.load != null ? ' · ' + s.load + '%' : '') + '</td>' +
             '<td id="st-' + s.hostname + '">' + statusCell(s.hostname) + '</td>' +
             '<td id="mt-' + s.hostname + '">' + (r ? '<span class="pill">' + (r.method || '—') + '</span>' : '<span class="muted">—</span>') + '</td>' +
             '<td id="pg-' + s.hostname + '" class="muted">' + (r && r.ms != null ? r.ms + ' ms' : '—') + '</td>';
